@@ -1,6 +1,4 @@
-/* eslint-disable jsx-a11y/label-has-associated-control */
-/* eslint-disable jsx-a11y/control-has-associated-label */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
 import * as todoService from './api/todos';
 import { Todo } from './types/Todo';
@@ -46,8 +44,8 @@ export const App: React.FC = () => {
   const [filter, setFilter] = useState<Filter>(Filter.All);
 
   const [title, setTitle] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [tempTodo, setTempTodo] = useState<Todo | null>(null);
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const visibleTodos = todos.filter(todo => {
     switch (filter) {
@@ -62,7 +60,7 @@ export const App: React.FC = () => {
 
   const activeTodos = todos.filter(todo => !todo.completed).length;
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError('');
 
@@ -78,28 +76,39 @@ export const App: React.FC = () => {
       return;
     }
 
-    const newTempTodo = {
+    const tempId = Date.now();
+
+    const newTempTodo: Todo = {
       id: 0,
       title: trimmedTitle,
       completed: false,
       userId: USER_ID,
+      isLoading: true,
     };
 
-    setTempTodo(newTempTodo);
-    setIsLoading(true);
+    setTodos(prev => [...prev, newTempTodo]);
+    setTitle('');
 
-    todoService.addTodo(newTempTodo)
-      .then(addedTodo => {
-        setTodos(prev => [...prev, addedTodo]);
-        setTempTodo(null);
-        setTitle('');
-      })
-      .catch(() => setError('Unable to add a todo'))
-      .finally(() => setIsLoading(false));
+    try {
+      const addedTodo = await todoService.addTodo(newTempTodo);
+
+      setTodos(prev =>
+        prev.map(todo =>
+          todo.id === tempId ? { ...addedTodo, isLoading: false } : todo,
+        ),
+      );
+    } catch {
+      setError('Unable to add a todo');
+
+      setTodos(prev => prev.filter(todo => todo.id !== tempId));
+    } finally {
+      inputRef.current?.focus();
+    }
   };
 
   const handleDelete = (id: number) => {
-    todoService.deleteTodo(id)
+    todoService
+      .deleteTodo(id)
       .then(() => {
         setTodos(current => current.filter(todo => todo.id !== id));
       })
@@ -137,6 +146,7 @@ export const App: React.FC = () => {
 
           <form onSubmit={handleSubmit}>
             <input
+              ref={inputRef}
               value={title}
               data-cy="NewTodoField"
               type="text"
@@ -180,33 +190,14 @@ export const App: React.FC = () => {
                   x
                 </button>
 
-                <div data-cy="TodoLoader" className="modal overlay">
-                  <div className="modal-background has-background-white-ter" />
-                  <div className="loader" />
-                </div>
+                {todo.isLoading && (
+                  <div data-cy="TodoLoader" className="modal overlay is-active">
+                    <div className="modal-background has-background-white-ter" />
+                    <div className="loader" />
+                  </div>
+                )}
               </div>
             ))}
-
-            {tempTodo && (
-              <div data-cy="Todo" className="todo">
-                <label className="todo__status-label">
-                  <input
-                    data-cy="TodoStatus"
-                    className="todo__status"
-                    type="checkbox"
-                    checked={false}
-                    readOnly
-                  />
-                </label>
-
-                <span className="todo__title">{tempTodo.title}</span>
-
-                <div className="modal overlay is-active">
-                  <div className="modal-background has-background-white-ter" />
-                  <div className="loader" />
-                </div>
-              </div>
-            )}
           </section>
         )}
 
@@ -251,7 +242,6 @@ export const App: React.FC = () => {
           className="delete"
           onClick={() => setError('')}
         />
-
         {error}
       </div>
     </div>
