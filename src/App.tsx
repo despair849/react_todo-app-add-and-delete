@@ -83,7 +83,6 @@ export const App: React.FC = () => {
       title: trimmedTitle,
       completed: false,
       userId: USER_ID,
-      isLoading: true,
     };
 
     setTempTodo(newTempTodo);
@@ -181,7 +180,7 @@ export const App: React.FC = () => {
           </form>
         </header>
 
-        {todos.length > 0 && (
+        {(todos.length > 0 || tempTodo) && (
           <section className="todoapp__main" data-cy="TodoList">
             {visibleTodos.map(todo => {
               const isDeleting = processingIds.includes(todo.id);
@@ -227,6 +226,28 @@ export const App: React.FC = () => {
                 </div>
               );
             })}
+            {tempTodo && (
+              <div data-cy="Todo" className="todo">
+                <label className="todo__status-label">
+                  <input
+                    data-cy="TodoStatus"
+                    className="todo__status"
+                    type="checkbox"
+                    checked={false}
+                    readOnly
+                  />
+                </label>
+
+                <span data-cy="TodoTitle" className="todo__title">
+                  {tempTodo.title}
+                </span>
+
+                <div data-cy="TodoLoader" className="modal overlay is-active">
+                  <div className="modal-background has-background-white-ter" />
+                  <div className="loader" />
+                </div>
+              </div>
+            )}
           </section>
         )}
 
