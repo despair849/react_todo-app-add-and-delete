@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/label-has-associated-control */
 import React, { useEffect, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
 import * as todoService from './api/todos';
@@ -219,6 +220,7 @@ export const App: React.FC = () => {
                       data-cy="TodoLoader"
                       className="modal overlay is-active"
                     >
+                      {/* eslint-disable-next-line max-len */}
                       <div className="modal-background has-background-white-ter" />
                       <div className="loader" />
                     </div>
